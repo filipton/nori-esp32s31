@@ -1,82 +1,63 @@
 [package]
-edition      = "2024"
-name         = "nori-esp32s31"
-rust-version = "1.95"
-version      = "0.1.0"
-
-[[bin]]
 name = "nori-esp32s31"
-path = "./src/bin/main.rs"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "A nori speaker on the ESP32-S31-Function-CoreBoard-1: plays what a nori cast sends it"
+publish = false
+
+# Its own workspace: it builds for the chip only (riscv32imafc-unknown-none-elf, nightly).
+[workspace]
 
 [dependencies]
-esp-hal = { version = "~1.2.2", features = ["esp32s31", "log-04", "unstable"] }
-
-esp-rtos = { version = "0.4.0", features = [
-  "embassy",
-  "esp-alloc",
-  "esp-radio",
-  "esp32s31",
-  "log-04",
-] }
-
-esp-bootloader-esp-idf = { version = "0.6.0", features = [
-  "esp32s31",
-  "log-04",
-] }
-log = "0.4.27"
-
-embassy-net = { version = "0.9.1", features = [
-  "dhcpv4",
-  "log",
-  "medium-ethernet",
-  "tcp",
-  "udp",
-] }
-embedded-io = "0.7.1"
-embedded-io-async = "0.7.0"
-esp-alloc = { version = "0.11.0", features = ["esp32s31"] }
-esp-backtrace = { version = "0.20.0", features = [
-  "esp32s31",
-  "panic-handler",
-  "println",
-] }
+esp-hal = { version = "1.2", features = ["esp32s31", "unstable"] }
+esp-rtos = { version = "0.4.0", features = ["esp32s31", "embassy", "esp-radio"] }
+esp-radio = { version = "1.0.0-beta.1", features = ["esp32s31", "wifi", "esp-alloc", "unstable"] }
+esp-alloc = { version = "0.11.0", default-features = false, features = ["compat"] }
+esp-backtrace = { version = "0.20.0", features = ["esp32s31", "panic-handler", "println"] }
 esp-println = { version = "0.18.0", features = ["esp32s31", "log-04"] }
-# for more networking protocol support see https://crates.io/crates/edge-net
-embassy-executor = { version = "0.10.0", features = ["log"] }
-embassy-time = { version = "0.5.0", features = ["log"] }
-esp-radio = { version = "1.0.0-beta.1", features = [
-  "esp-alloc",
-  "esp32s31",
-  "log-04",
-  "unstable",
-  "wifi",
-] }
-smoltcp = { version = "0.14.0", default-features = false, features = [
-  "log",
-  "medium-ethernet",
-  "multicast",
-  "proto-dhcpv4",
-  "proto-dns",
-  "proto-ipv4",
-  "socket-dns",
-  "socket-icmp",
-  "socket-raw",
-  "socket-tcp",
-  "socket-udp",
-] }
+esp-bootloader-esp-idf = { version = "0.6.0", features = ["esp32s31", "log-04"] }
+# Joins the saved network, or is set up over its access point or BLE until one is.
+esp-hal-wifimanager = { version = "0.6.4", default-features = false, features = ["esp32s31", "ap", "ble"] }
+log = "0.4.34"
 
-critical-section = "1.2.0"
-static_cell      = "2.1.1"
+embassy-executor = "0.10.0"
+embassy-net = { version = "0.9.1", features = ["tcp", "udp", "dns", "multicast", "dhcpv4", "medium-ethernet", "proto-ipv4"] }
+embassy-time = "0.5.1"
+static_cell = "2.1.1"
 
 
-# For fine tuning these settings, please refer to https://doc.rust-lang.org/cargo/reference/profiles.html
+
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+
 [profile.dev]
-# The default debug profile is too slow and too big for resource-constrained devices.
-# Always build with some optimizations enabled.
-opt-level = "s"
+# The radio and the audio path need it.
+opt-level = 3
 
 [profile.release]
-codegen-units = 1     # LLVM can perform better optimizations using a single thread
-debug         = 2     # prefer slower builds but better debugging experience
-lto           = 'fat'
-opt-level     = 's'
+codegen-units = 1
+debug = 2
+lto = "fat"
+opt-level = 3
+
+[patch.crates-io]
+# `init_wm_with` (more than two sockets for the app) and BLE on the S31, until a wifimanager release has them.
+esp-hal-wifimanager = { git = "https://github.com/filipton/esp-hal-wifimanager", branch = "master" }
+# The ESP32-S31's I2S (esp-hal #6197) is on esp-hal's main branch only; its crates come from one commit.
+esp-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-radio = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-rtos = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-alloc = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-backtrace = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-println = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-bootloader-esp-idf = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-storage = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-rom-sys = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-sync = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-metadata-generated = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-phy = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-radio-rtos-driver = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-hal-procmacros = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-riscv-rt = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
+esp-config = { git = "https://github.com/esp-rs/esp-hal", rev = "5c0820cf9e2be0a49719bd71c30e7a45cae48134" }
