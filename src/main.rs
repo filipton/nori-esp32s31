@@ -1,5 +1,5 @@
 //! A nori speaker on the ESP32-S31-Function-CoreBoard-1: joins the network (esp-hal-wifimanager, set up
-//! over its access point or BLE).
+//! over its access point or BLE) and announces itself over mDNS.
 
 #![no_std]
 #![no_main]
@@ -7,6 +7,7 @@
 extern crate alloc;
 
 mod heap;
+mod mdns;
 mod setup;
 
 use embassy_executor::Spawner;
@@ -16,8 +17,8 @@ use static_cell::StaticCell;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
-/// Sockets on the station's stack: DHCP and DNS.
-const SOCKETS: usize = 2;
+/// Sockets on the station's stack: DHCP, DNS and mDNS.
+const SOCKETS: usize = 3;
 
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
@@ -50,6 +51,7 @@ async fn main(spawner: Spawner) {
 
     let name = setup::name(wifi.data());
     log::info!("set up as \"{name}\"");
+    spawner.spawn(mdns::announce(stack, id, name).expect("mdns"));
     loop {
         embassy_time::Timer::after_secs(3600).await;
     }

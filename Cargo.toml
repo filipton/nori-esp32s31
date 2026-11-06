@@ -24,8 +24,14 @@ log = "0.4.34"
 embassy-executor = "0.10.0"
 embassy-net = { version = "0.9.1", features = ["tcp", "udp", "dns", "multicast", "dhcpv4", "medium-ethernet", "proto-ipv4"] }
 embassy-time = "0.5.1"
+embassy-sync = "0.8.0"
 static_cell = "2.1.1"
 
+# Announces the speaker as `_nori-speaker._tcp` for a cast plugin's discovery.
+edge-mdns = { version = "0.8.0", default-features = false, features = ["io", "log"] }
+edge-nal = "0.7.0"
+edge-nal-embassy = { version = "0.9.0", features = ["udp", "multicast", "proto-ipv4", "medium-ethernet"] }
+rand_core = { version = "0.10", default-features = false }
 
 
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
