@@ -13,5 +13,3 @@ rustflags = [
 
 target = "riscv32imafc-unknown-none-elf"
 
-[unstable]
-build-std = ["alloc", "core"]

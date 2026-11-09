@@ -25,6 +25,8 @@ embassy-executor = "0.10.0"
 embassy-net = { version = "0.9.1", features = ["tcp", "udp", "dns", "multicast", "dhcpv4", "medium-ethernet", "proto-ipv4"] }
 embassy-time = "0.5.1"
 embassy-sync = "0.8.0"
+embassy-futures = "0.1.2"
+embedded-io-async = "0.7.0"
 static_cell = "2.1.1"
 
 # Announces the speaker as `_nori-speaker._tcp` for a cast plugin's discovery.
@@ -33,6 +35,9 @@ edge-nal = "0.7.0"
 edge-nal-embassy = { version = "0.9.0", features = ["udp", "multicast", "proto-ipv4", "medium-ethernet"] }
 rand_core = { version = "0.10", default-features = false }
 
+# The frames between nori and the speaker.
+nori-sink-protocol = { git = "https://github.com/norifm/nori", branch = "master" }
+libm = "0.2"
 
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }

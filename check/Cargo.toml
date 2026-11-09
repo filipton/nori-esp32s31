@@ -1,0 +1,17 @@
+[package]
+name = "nori-esp32s31-check"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# The firmware's chip-free parts (the stream, the decoders) built for the host and tested there:
+# `cargo test --target x86_64-unknown-linux-gnu` in this directory.
+[workspace]
+
+[dependencies]
+nori-sink-protocol = { git = "https://github.com/norifm/nori", branch = "master" }
+embassy-sync = "0.8.0"
+critical-section = { version = "1", features = ["std"] }
+
+[dev-dependencies]
+embassy-futures = "0.1.2"

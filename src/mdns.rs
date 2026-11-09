@@ -1,9 +1,6 @@
 //! The speaker announced as `_nori-speaker._tcp`, its id and name in the TXT, for a cast plugin's
 //! discovery to find.
 
-/// The port the cast will come to.
-const PORT: u16 = 47_801;
-
 use alloc::format;
 use core::net::{Ipv4Addr, Ipv6Addr};
 
@@ -43,7 +40,7 @@ pub async fn announce(stack: Stack<'static>, id: alloc::string::String, name: &'
         weight: 0,
         service: SERVICE,
         protocol: "_tcp",
-        port: PORT,
+        port: crate::receive::PORT,
         service_subtypes: &[],
         txt_kvs: &txt,
     };
