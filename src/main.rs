@@ -11,6 +11,7 @@ mod codec;
 mod flac;
 mod heap;
 mod mdns;
+mod mp3;
 mod play;
 mod psram;
 mod receive;

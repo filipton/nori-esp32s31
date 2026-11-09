@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 nori-sink-protocol = { git = "https://github.com/norifm/nori", branch = "master" }
+nanomp3-core = { version = "0.2.0", default-features = false, features = ["layer12"] }
 embassy-sync = "0.8.0"
 critical-section = { version = "1", features = ["std"] }
 

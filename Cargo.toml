@@ -37,6 +37,7 @@ rand_core = { version = "0.10", default-features = false }
 
 # The frames between nori and the speaker.
 nori-sink-protocol = { git = "https://github.com/norifm/nori", branch = "master" }
+nanomp3-core = { version = "0.2.0", default-features = false, features = ["layer12"] }
 libm = "0.2"
 
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }

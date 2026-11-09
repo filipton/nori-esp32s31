@@ -9,5 +9,7 @@ extern crate alloc;
 pub mod flac;
 #[path = "../../src/light.rs"]
 pub mod light;
+#[path = "../../src/mp3.rs"]
+pub mod mp3;
 #[path = "../../src/stream.rs"]
 pub mod stream;

@@ -2,14 +2,16 @@
 //! output where its audio starts, a gain or now playing applies from there), the audio decoded to
 //! 32-bit stereo and scaled by fade × song gain, untouched when that is one; the volume is the codec's.
 
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use embassy_futures::select::select;
 use embassy_time::{Duration, Timer};
-use nori_sink_protocol::Format;
+use nori_sink_protocol::{Codec, Format};
 
 use crate::codec::{self, Output};
 use crate::flac::{self, Flac};
+use crate::mp3::Mp3;
 use crate::psram;
 use crate::stream::{self, Kind, Record, Stream};
 
@@ -57,6 +59,7 @@ struct Player {
     /// The song's ReplayGain, linear.
     song_gain: f32,
     flac: Flac,
+    mp3: Box<Mp3>,
     packet: Vec<u8>,
     /// Decoded samples, interleaved stereo.
     samples: Vec<i32>,
@@ -72,6 +75,7 @@ pub async fn play(stream: &'static Stream, output: Output) -> ! {
         fade: Fade { gain: 1.0, step: 0.0, left: 0 },
         song_gain: 1.0,
         flac: Flac::new(psram::vec(0, flac::PLANES)),
+        mp3: Box::new(Mp3::new()),
         packet: Vec::new(),
         samples: psram::vec(0, 2 * flac::MAX_BLOCK),
         decoded: None,
@@ -117,6 +121,9 @@ pub async fn play(stream: &'static Stream, output: Output) -> ! {
                 p.format = stream.with(|s| stream::decode_format(s.payload(at, &r)));
                 // Gain comes only before encoded songs: PCM has it applied.
                 p.song_gain = 1.0;
+                if p.format.is_some_and(|f| f.codec == Codec::Mp3) {
+                    p.mp3.reset();
+                }
                 if let Some(f) = p.format {
                     log::info!("playing {} Hz, {} channels, {:?} {}", f.rate, f.channels, f.codec, f.bits);
                 }
@@ -230,7 +237,10 @@ impl Player {
                 self.packet.clear();
                 self.packet.extend_from_slice(s.payload(at, r));
             });
-            let made = self.flac.decode(&self.packet, &mut self.samples);
+            let made = match f.codec {
+                Codec::Mp3 => self.mp3.decode(&self.packet, &mut self.samples),
+                _ => self.flac.decode(&self.packet, &mut self.samples),
+            };
             let frames = made.unwrap_or_else(|e| {
                 log::warn!("{:?}: {e}", f.codec);
                 0

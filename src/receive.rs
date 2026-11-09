@@ -12,6 +12,7 @@ use nori_sink_protocol::{Caps, Codec, Device, Frames, Host, VERSION};
 
 use crate::codec;
 use crate::flac;
+use crate::mp3;
 use crate::psram;
 use crate::stream::{self, Kind, Stream};
 
@@ -27,7 +28,7 @@ const CAPS: Caps = Caps {
     max_rate: codec::MAX_RATE,
     // 16- and 24-bit.
     bits: 0b11,
-    decodes: 1 << 1,
+    decodes: 1 << 1 | 1 << 2,
     // For the round screen.
     cover: Some(COVER_PX),
 };
@@ -136,7 +137,10 @@ async fn handle(stream: &Stream, frame: Host<'_>, codec: &mut Codec, hello: &mut
             stream.put_audio(Kind::Pcm, (samples.len() / frame.max(1)) as u32, samples).await;
         }
         Host::Encoded(packet) => {
-            let frames = flac::frames(packet);
+            let frames = match codec {
+                Codec::Mp3 => mp3::frames(packet),
+                _ => flac::frames(packet),
+            };
             match frames {
                 Some(n) => stream.put_audio(Kind::Encoded, n, packet).await,
                 None => log::warn!("{codec:?}: a packet not understood"),
