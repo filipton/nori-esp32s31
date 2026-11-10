@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+mod button;
 mod codec;
 mod flac;
 mod heap;
@@ -77,6 +78,7 @@ async fn main(spawner: Spawner) {
     stream.changed();
     spawner.spawn(mdns::announce(stack, id, name).expect("mdns"));
     spawner.spawn(receive::serve(stack, stream).expect("receive"));
+    spawner.spawn(button::watch(peripherals.GPIO61, stream).expect("button"));
     log::info!("internal RAM free: {}, PSRAM free: {}", esp_alloc::HEAP.free_caps(esp_alloc::MemoryCapability::Internal.into()), esp_alloc::HEAP.free_caps(esp_alloc::MemoryCapability::External.into()));
     play::play(stream, output).await;
 }
