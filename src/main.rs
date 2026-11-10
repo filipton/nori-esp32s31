@@ -16,6 +16,7 @@ mod mp3;
 mod play;
 mod psram;
 mod receive;
+mod screen;
 mod setup;
 mod stream;
 
@@ -25,6 +26,9 @@ use esp_hal::timer::timg::TimerGroup;
 use static_cell::StaticCell;
 
 esp_bootloader_esp_idf::esp_app_desc!();
+
+/// The second core's stack (internal RAM: the core starts on it). A cover's decoder is on the heap.
+const SCREENS_STACK: usize = 32 * 1024;
 
 /// Sockets on the station's stack: DHCP, DNS, mDNS and the cast's stream.
 const SOCKETS: usize = 4;
@@ -45,6 +49,25 @@ async fn main(spawner: Spawner) {
     let id = alloc::format!("{:012x}", esp_hal_wifimanager::get_efuse_mac());
     let setup: &'static str = alloc::format!("nori-{}", &id[..6]).leak();
     let stream = stream::Stream::new();
+
+    // The screens on the second core: decoding a cover and drawing take longer than the audio
+    // output holds.
+    let screen_pins = screen::Pins {
+        spi: peripherals.SPI2,
+        dma: peripherals.DMA_AXI_CH0,
+        sck: peripherals.GPIO20,
+        mosi: peripherals.GPIO21,
+        dc: peripherals.GPIO22,
+        cs: peripherals.GPIO23,
+        rst: peripherals.GPIO24,
+    };
+    static SCREENS: StaticCell<esp_hal::system::Stack<SCREENS_STACK>> = StaticCell::new();
+    esp_rtos::start_second_core(peripherals.CPU_CTRL, SCREENS.init(esp_hal::system::Stack::new()), move || {
+        static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();
+        EXECUTOR.init(esp_rtos::embassy::Executor::new()).run(|spawner| {
+            spawner.spawn(screen::run(screen_pins, stream).expect("screen"));
+        });
+    });
 
     let output = codec::Output::new(codec::Pins {
         i2s: peripherals.I2S0,

@@ -42,6 +42,11 @@ libm = "0.2"
 
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
+mipidsi = "0.10"
+embedded-graphics = "0.8"
+embedded-hal = "1"
+zune-jpeg = { version = "0.5", default-features = false }
+zune-core = { version = "0.5", default-features = false }
 
 [profile.dev]
 # The radio and the audio path need it.
