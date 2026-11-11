@@ -13,6 +13,7 @@ mod flac;
 mod heap;
 mod mdns;
 mod mp3;
+mod oled;
 mod play;
 mod psram;
 mod receive;
@@ -61,10 +62,12 @@ async fn main(spawner: Spawner) {
         cs: peripherals.GPIO23,
         rst: peripherals.GPIO24,
     };
+    let (i2c1, oled_sda, oled_scl) = (peripherals.I2C1, peripherals.GPIO43, peripherals.GPIO44);
     static SCREENS: StaticCell<esp_hal::system::Stack<SCREENS_STACK>> = StaticCell::new();
     esp_rtos::start_second_core(peripherals.CPU_CTRL, SCREENS.init(esp_hal::system::Stack::new()), move || {
         static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();
         EXECUTOR.init(esp_rtos::embassy::Executor::new()).run(|spawner| {
+            spawner.spawn(oled::run(i2c1, oled_sda, oled_scl, stream).expect("oled"));
             spawner.spawn(screen::run(screen_pins, stream).expect("screen"));
         });
     });
@@ -87,6 +90,9 @@ async fn main(spawner: Spawner) {
     let mut settings = esp_hal_wifimanager::WmSettings::default();
     settings.ssid.clear();
     _ = core::fmt::write(&mut settings.ssid, format_args!("{setup}"));
+    static SETTING_UP: esp_hal_wifimanager::ProvisioningSignal = esp_hal_wifimanager::ProvisioningSignal::new();
+    settings.provisioning_signal = Some(&SETTING_UP);
+    spawner.spawn(setting_up(&SETTING_UP, setup, stream).expect("setup"));
 
     static RESOURCES: StaticCell<embassy_net::StackResources<SOCKETS>> = StaticCell::new();
     let wifi = esp_hal_wifimanager::init_wm_with(settings, &spawner, Some(nvs), peripherals.WIFI, peripherals.BT, RESOURCES.init(embassy_net::StackResources::new()))
@@ -104,4 +110,16 @@ async fn main(spawner: Spawner) {
     spawner.spawn(button::watch(peripherals.GPIO61, stream).expect("button"));
     log::info!("internal RAM free: {}, PSRAM free: {}", esp_alloc::HEAP.free_caps(esp_alloc::MemoryCapability::Internal.into()), esp_alloc::HEAP.free_caps(esp_alloc::MemoryCapability::External.into()));
     play::play(stream, output).await;
+}
+
+/// Shows the setup's network name once the speaker waits to be set up.
+#[embassy_executor::task]
+async fn setting_up(signal: &'static esp_hal_wifimanager::ProvisioningSignal, setup: &'static str, stream: &'static stream::Stream) {
+    signal.wait().await;
+    stream.with(|s| {
+        if matches!(s.net, stream::Net::Joining) {
+            s.net = stream::Net::Setup(setup);
+        }
+    });
+    stream.changed();
 }
