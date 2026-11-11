@@ -11,12 +11,14 @@ mod button;
 mod codec;
 mod flac;
 mod heap;
+mod knob;
 mod mdns;
 mod mp3;
 mod oled;
 mod play;
 mod psram;
 mod receive;
+mod saved;
 mod screen;
 mod setup;
 mod stream;
@@ -47,10 +49,15 @@ async fn main(spawner: Spawner) {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
 
+
     let id = alloc::format!("{:012x}", esp_hal_wifimanager::get_efuse_mac());
     let setup: &'static str = alloc::format!("nori-{}", &id[..6]).leak();
     let stream = stream::Stream::new();
 
+    // The knob and the two screens run from now on, with or without a network.
+    static KNOB: StaticCell<esp_rtos::embassy::InterruptExecutor<2>> = StaticCell::new();
+    let knob_spawner = KNOB.init(esp_rtos::embassy::InterruptExecutor::new(peripherals.FROM_CPU_INTR2)).start(esp_hal::interrupt::Priority::Priority3);
+    knob_spawner.spawn(knob::watch(peripherals.GPIO47, peripherals.GPIO48, peripherals.GPIO49, stream).expect("knob"));
     // The screens on the second core: decoding a cover and drawing take longer than the audio
     // output holds.
     let screen_pins = screen::Pins {
@@ -87,6 +94,12 @@ async fn main(spawner: Spawner) {
     .await;
 
     let nvs = esp_hal_wifimanager::Nvs::new(peripherals.FLASH).expect("nvs");
+    if let Some(volume) = saved::volume(nvs).await {
+        log::info!("volume {:.0} % (kept)", volume * 100.0);
+        stream.with(|s| s.volume = volume);
+    }
+    spawner.spawn(saved::keep(nvs, stream).expect("keep"));
+    spawner.spawn(knob::settle(stream).expect("settle"));
     let mut settings = esp_hal_wifimanager::WmSettings::default();
     settings.ssid.clear();
     _ = core::fmt::write(&mut settings.ssid, format_args!("{setup}"));
