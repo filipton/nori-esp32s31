@@ -4,9 +4,9 @@ use alloc::string::String;
 use serde::Deserialize;
 
 /// The setup's data field, as it is to be filled in.
-pub const EXAMPLE: &str = r#"{"name":"Kitchen"}"#;
+pub const EXAMPLE: &str = r#"{"name":"NoriHW"}"#;
 
-const DEFAULT_NAME: &str = "nori speaker";
+const DEFAULT_NAME: &str = "NoriHW";
 
 #[derive(Deserialize)]
 struct Setup {

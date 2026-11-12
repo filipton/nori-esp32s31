@@ -16,7 +16,7 @@ Nightly. esp-hal and esp-hal-wifimanager come from git for now (`[patch.crates-i
 On first boot it opens an access point, `nori-<mac>`, and a BLE setup. Give it your network and a name:
 
 ```json
-{"name":"Kitchen"}
+{"name":"NoriHW"}
 ```
 
 Then cast to it with the `speaker` plugin from [nori-plugins](https://github.com/norifm/nori-plugins).
